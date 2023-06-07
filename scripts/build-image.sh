@@ -69,7 +69,7 @@ elif [[ "${BOARD}" == orangepi5b ]]; then
     OVERLAY_PREFIX=orangepi-5
 elif [[ "${BOARD}" == orangepi5plus ]]; then
     DEVICE_TREE=rk3588-orangepi-5-plus.dtb
-    OVERLAY_PREFIX=orangepi-5
+    OVERLAY_PREFIX=orangepi-5-plus
 elif [[ "${BOARD}" == rock5a ]]; then
     DEVICE_TREE=rk3588s-rock-5a.dtb
     OVERLAY_PREFIX=rock-5a
@@ -233,8 +233,8 @@ overlays=
 EOF
 
 # Copy kernel and initrd to boot partition
-cp ${mount_point}/writable/boot/initrd.img-5.10.160-rockchip-rk3588 ${mount_point}/system-boot/initrd.img
-cp ${mount_point}/writable/boot/vmlinuz-5.10.160-rockchip-rk3588 ${mount_point}/system-boot/vmlinuz
+cp ${mount_point}/writable/boot/initrd.img-5.10.160-rockchip ${mount_point}/system-boot/initrd.img
+cp ${mount_point}/writable/boot/vmlinuz-5.10.160-rockchip ${mount_point}/system-boot/vmlinuz
 
 # Copy device trees to boot partition
 mv ${mount_point}/writable/boot/firmware/* ${mount_point}/system-boot
@@ -246,8 +246,10 @@ dd if=${mount_point}/writable/usr/lib/u-boot-"${VENDOR}"-rk3588/u-boot.itb of="$
 # Cloud init config for server image
 if [ -z "${img##*server*}" ]; then
     cp ../overlay/boot/firmware/{meta-data,user-data,network-config} ${mount_point}/system-boot
-    if [[ "${BOARD}" =~ indiedroid-nova|rock5b ]]; then
+    if [ "${BOARD}" == rock5b ] || [ "${BOARD}" == indiedroid-nova ]; then
         sed -i 's/eth0:/enP4p65s0:/g' ${mount_point}/system-boot/network-config
+    elif [ "${BOARD}" == orangepi5plus ]; then
+        sed -i 's/eth0:/enP4p65s0:\n    dhcp4: true\n    optional: true\n  enP3p49s0:/g' ${mount_point}/system-boot/network-config
     fi
 fi
 

@@ -88,13 +88,13 @@ if [[ ${CLEAN} == "Y" ]]; then
     rm -rf build
 fi
 
-if [[ ${BOARD} =~ orangepi5|orangepi5b|orangepi5plus ]]; then
+if [ "${BOARD}" == orangepi5 ] || [ "${BOARD}" == orangepi5b ] || [ "${BOARD}" == orangepi5plus ]; then
     export VENDOR=orangepi
-elif [[ "${BOARD}" =~ rock5b|rock5a ]]; then
+elif [ "${BOARD}" == rock5b ] || [ "${BOARD}" == rock5a ]; then
     export VENDOR=radxa
-elif [[ "${BOARD}" =~ nanopir6c|nanopir6s ]]; then
+elif [ "${BOARD}" == nanopir6c ] || [ "${BOARD}" == nanopir6s ]; then
     export VENDOR=nanopi
-elif [[ "${BOARD}" =~ indiedroid-nova ]]; then
+elif [ "${BOARD}" == indiedroid-nova ]; then
     export VENDOR=9tripod
 else
     echo "Error: \"${BOARD}\" is an unsupported board"
@@ -112,7 +112,7 @@ if [[ ${UBOOT_ONLY} == "Y" ]]; then
 fi
 
 if [[ ${LAUNCHPAD} != "Y" ]]; then
-    for file in build/linux-{headers,image}-5.10.160-rockchip-rk3588_*.deb; do
+    for file in build/linux-{headers,image}-5.10.160-rockchip_*.deb; do
         if [ ! -e "$file" ]; then
             eval "${DOCKER}" ./scripts/build-kernel.sh
         fi
@@ -124,6 +124,6 @@ if [[ ${LAUNCHPAD} != "Y" ]]; then
 fi
 
 eval "${DOCKER}" ./scripts/build-rootfs.sh
-eval "${DOCKER}" ./scripts/configure-image.sh
+eval "${DOCKER}" ./scripts/config-image.sh
 
 exit 0

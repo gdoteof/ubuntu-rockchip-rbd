@@ -22,7 +22,7 @@ if [[ -z ${VENDOR} ]]; then
 fi
 
 if [[ ${LAUNCHPAD} != "Y" ]]; then
-    for file in linux-{headers,image}-5.10.160-rockchip-rk3588_*.deb; do
+    for file in linux-{headers,image}-5.10.160-rockchip_*.deb; do
         if [ ! -e "$file" ]; then
             echo "Error: missing kernel debs, please run build-kernel.sh"
             exit 1
@@ -67,20 +67,20 @@ for type in server desktop; do
 
     # Install the kernel
     if [[ ${LAUNCHPAD}  == "Y" ]]; then
-        chroot ${chroot_dir} /bin/bash -c "apt-get -y install linux-image-5.10.160-rockchip-rk3588 linux-headers-5.10.160-rockchip-rk3588"
+        chroot ${chroot_dir} /bin/bash -c "apt-get -y install linux-image-5.10.160-rockchip linux-headers-5.10.160-rockchip"
     else
-        cp linux-{headers,image}-5.10.160-rockchip-rk3588_*.deb ${chroot_dir}/tmp
-        chroot ${chroot_dir} /bin/bash -c "dpkg -i /tmp/linux-{headers,image}-5.10.160-rockchip-rk3588_*.deb && rm -rf /tmp/*"
-        chroot ${chroot_dir} /bin/bash -c "apt-mark hold linux-image-5.10.160-rockchip-rk3588 linux-headers-5.10.160-rockchip-rk3588"
+        cp linux-{headers,image}-5.10.160-rockchip_*.deb ${chroot_dir}/tmp
+        chroot ${chroot_dir} /bin/bash -c "dpkg -i /tmp/linux-{headers,image}-5.10.160-rockchip_*.deb && rm -rf /tmp/*"
+        chroot ${chroot_dir} /bin/bash -c "apt-mark hold linux-image-5.10.160-rockchip linux-headers-5.10.160-rockchip"
     fi
 
     # Generate kernel module dependencies
-    chroot ${chroot_dir} /bin/bash -c "depmod -a 5.10.160-rockchip-rk3588"
+    chroot ${chroot_dir} /bin/bash -c "depmod -a 5.10.160-rockchip"
 
     # Copy device trees and overlays
     mkdir -p ${chroot_dir}/boot/firmware/dtbs/overlays
-    cp ${chroot_dir}/usr/lib/linux-image-5.10.160-rockchip-rk3588/rockchip/*.dtb ${chroot_dir}/boot/firmware/dtbs
-    cp ${chroot_dir}/usr/lib/linux-image-5.10.160-rockchip-rk3588/rockchip/overlay/*.dtbo ${chroot_dir}/boot/firmware/dtbs/overlays
+    cp ${chroot_dir}/usr/lib/linux-image-5.10.160-rockchip/rockchip/*.dtb ${chroot_dir}/boot/firmware/dtbs
+    cp ${chroot_dir}/usr/lib/linux-image-5.10.160-rockchip/rockchip/overlay/*.dtbo ${chroot_dir}/boot/firmware/dtbs/overlays
 
     # Install the bootloader
     if [[ ${LAUNCHPAD}  == "Y" ]]; then
@@ -92,7 +92,16 @@ for type in server desktop; do
     fi
 
     # Board specific changes
-    if [[ ${BOARD} =~ orangepi5|orangepi5b ]]; then
+    if [ "${BOARD}" == orangepi5plus ]; then
+        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi0-sound", ENV{SOUND_DESCRIPTION}="HDMI0 Audio"' > ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
+        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi1-sound", ENV{SOUND_DESCRIPTION}="HDMI1 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
+        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmiin-sound", ENV{SOUND_DESCRIPTION}="HDMI-In Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
+        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-dp0-sound", ENV{SOUND_DESCRIPTION}="DP0 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
+        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-es8388-sound", ENV{SOUND_DESCRIPTION}="ES8388 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
+
+        chroot ${chroot_dir} /bin/bash -c "apt-get -y install wiringpi-opi libwiringpi2-opi libwiringpi-opi-dev"
+        echo "BOARD=${BOARD}" > ${chroot_dir}/etc/"${VENDOR}"-release
+    elif [ "${BOARD}" == orangepi5 ] || [ "${BOARD}" == orangepi5 ]; then
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi0-sound", ENV{SOUND_DESCRIPTION}="HDMI0 Audio"' > ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-dp0-sound", ENV{SOUND_DESCRIPTION}="DP0 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-es8388-sound", ENV{SOUND_DESCRIPTION}="ES8388 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
@@ -100,30 +109,21 @@ for type in server desktop; do
         cp ${overlay_dir}/usr/lib/systemd/system/enable-usb2.service ${chroot_dir}/usr/lib/systemd/system/enable-usb2.service
         chroot ${chroot_dir} /bin/bash -c "systemctl --no-reload enable enable-usb2"
 
-        chroot ${chroot_dir} /bin/bash -c "apt-get -y install wiringpi-opi"
+        chroot ${chroot_dir} /bin/bash -c "apt-get -y install wiringpi-opi libwiringpi2-opi libwiringpi-opi-dev"
         echo "BOARD=${BOARD}" > ${chroot_dir}/etc/"${VENDOR}"-release
-    elif [[ "${BOARD}" =~ orangepi5plus ]]; then
-        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi0-sound", ENV{SOUND_DESCRIPTION}="HDMI0 Audio"' > ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
-        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi1-sound", ENV{SOUND_DESCRIPTION}="HDMI1 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
-        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmiin-sound", ENV{SOUND_DESCRIPTION}="HDMI-In Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
-        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-dp0-sound", ENV{SOUND_DESCRIPTION}="DP0 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
-        echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-es8388-sound", ENV{SOUND_DESCRIPTION}="ES8388 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
-
-        chroot ${chroot_dir} /bin/bash -c "apt-get -y install wiringpi-opi"
-        echo "BOARD=${BOARD}" > ${chroot_dir}/etc/"${VENDOR}"-release
-    elif [[ "${BOARD}" =~ rock5a ]]; then
+    elif [ "${BOARD}" == rock5a ]; then
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi0-sound", ENV{SOUND_DESCRIPTION}="HDMI0 Audio"' > ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-dp0-sound", ENV{SOUND_DESCRIPTION}="DP0 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-es8316-sound", ENV{SOUND_DESCRIPTION}="ES8316 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
-    elif [[ "${BOARD}" =~ rock5b ]]; then
+    elif [ "${BOARD}" == rock5b ]; then
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi0-sound", ENV{SOUND_DESCRIPTION}="HDMI0 Audio"' > ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi1-sound", ENV{SOUND_DESCRIPTION}="HDMI1 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmiin-sound", ENV{SOUND_DESCRIPTION}="HDMI-In Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-dp0-sound", ENV{SOUND_DESCRIPTION}="DP0 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-es8316-sound", ENV{SOUND_DESCRIPTION}="ES8316 Audio"' >> ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
-    elif [[ "${BOARD}" =~ nanopir6c|nanopir6s ]]; then
+    elif [ "${BOARD}" == nanopir6c ] || [ "${BOARD}" == nanopir6s ]; then
         echo 'SUBSYSTEM=="sound", ENV{ID_PATH}=="platform-hdmi0-sound", ENV{SOUND_DESCRIPTION}="HDMI0 Audio"' > ${chroot_dir}/etc/udev/rules.d/90-naming-audios.rules
-    elif [[ "${BOARD}" =~ indiedroid-nova ]]; then
+    elif [ "${BOARD}" == indiedroid-nova ]; then
         pushd ${chroot_dir}/tmp
         git clone https://github.com/stvhay/rkwifibt
         cd rkwifibt && make CROSS_COMPILE=aarch64-linux-gnu- -C realtek/rtk_hciattach
@@ -141,9 +141,9 @@ for type in server desktop; do
     fi
 
     if [[ ${type} == "desktop" ]]; then
-        if [[ ${BOARD} =~ orangepi5|orangepi5b|nanopir6c|nanopir6s ]]; then
+        if [ "${BOARD}" == orangepi5 ] || [ "${BOARD}" == orangepi5b ] || [ "${BOARD}" == nanopir6c ] || [ "${BOARD}" == nanopir6s ]; then
             echo "set-default-sink alsa_output.platform-hdmi0-sound.stereo-fallback" >> ${chroot_dir}/etc/pulse/default.pa
-        elif [[ ${BOARD} =~ indiedroid-nova ]]; then
+        elif [ "${BOARD}" == indiedroid-nova ]; then
             echo "set-default-sink 1" >> ${chroot_dir}/etc/pulse/default.pa
         fi
     fi
